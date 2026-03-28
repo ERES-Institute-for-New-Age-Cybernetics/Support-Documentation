@@ -1,0 +1,219 @@
+# ERES Institute for New Age Cybernetics — Discussions CI
+# C = R × P / M (Cybernetics = Resource × Purpose ÷ Method)
+# "Don't hurt yourself. Don't hurt others. Build for generations to come."
+#
+# CARE Commons Attribution License v2.1 (CCAL)
+# Non-Punitive Remediation (NPR v3.0) governs all CI failures.
+# No contributor shall be penalized for a failing build.
+
+name: ERES-CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  # ──────────────────────────────────────────────
+  # 1. VALIDATE — Structural integrity of the repo
+  # ──────────────────────────────────────────────
+  validate:
+    name: Validate Repository Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify SECURITY.md exists
+        run: |
+          if [ ! -f "SECURITY.md" ]; then
+            echo "::warning::SECURITY.md not found — ERES Security Policy must be present."
+            echo "See: https://github.com/ERES-Institute-for-New-Age-Cybernetics/Discussions/SECURITY.md"
+            exit 1
+          fi
+          echo "✓ SECURITY.md present"
+
+      - name: Verify README.md exists
+        run: |
+          if [ ! -f "README.md" ]; then
+            echo "::warning::README.md not found."
+            exit 1
+          fi
+          echo "✓ README.md present"
+
+      - name: Verify CCAL license reference
+        run: |
+          CCAL_COUNT=$(grep -rl "CARE Commons Attribution License" --include="*.md" . | wc -l)
+          echo "Files referencing CCAL v2.1: $CCAL_COUNT"
+          if [ "$CCAL_COUNT" -eq 0 ]; then
+            echo "::warning::No files reference the CARE Commons Attribution License v2.1."
+            exit 1
+          fi
+          echo "✓ CCAL v2.1 referenced in $CCAL_COUNT file(s)"
+
+  # ──────────────────────────────────────────────
+  # 2. INTEGRITY — Markdown lint & link check
+  # ──────────────────────────────────────────────
+  integrity:
+    name: Document Integrity Check
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Count documentation files
+        run: |
+          MD_COUNT=$(find . -name "*.md" -not -path "./.github/*" | wc -l)
+          echo "Markdown documents found: $MD_COUNT"
+          echo "MD_COUNT=$MD_COUNT" >> $GITHUB_ENV
+
+      - name: Verify Three Foundational Principles
+        run: |
+          PRINCIPLES=0
+          if grep -rq "Don't hurt yourself" --include="*.md" .; then PRINCIPLES=$((PRINCIPLES+1)); fi
+          if grep -rq "Don't hurt others" --include="*.md" .; then PRINCIPLES=$((PRINCIPLES+1)); fi
+          if grep -rq "Build for generations" --include="*.md" .; then PRINCIPLES=$((PRINCIPLES+1)); fi
+          echo "Foundational Principles found: $PRINCIPLES / 3"
+          if [ "$PRINCIPLES" -lt 3 ]; then
+            echo "::warning::Not all three foundational principles are present in documentation."
+          fi
+          echo "✓ Principle check complete ($PRINCIPLES/3)"
+
+      - name: Check ERES TERMS version reference
+        run: |
+          if grep -rq "ERES TERMS #" --include="*.md" .; then
+            LATEST=$(grep -roh "ERES TERMS #[0-9]*" --include="*.md" . | sort -t'#' -k2 -n | tail -1)
+            echo "✓ Latest ERES TERMS reference: $LATEST"
+          else
+            echo "::notice::No ERES TERMS version reference found."
+          fi
+
+      - name: Verify IPIDITIS security architecture referenced
+        run: |
+          if grep -rq "IPIDITIS\|IDIPITIS" --include="*.md" .; then
+            echo "✓ IPIDITIS/IDIPITIS security architecture referenced"
+          else
+            echo "::notice::IPIDITIS identity architecture not referenced in current documents."
+          fi
+
+      - name: Verify NPR remediation policy referenced
+        run: |
+          if grep -rq "Non-Punitive Remediation\|NPR" --include="*.md" .; then
+            echo "✓ Non-Punitive Remediation (NPR) referenced"
+          else
+            echo "::warning::NPR remediation policy not found in documentation."
+          fi
+
+  # ──────────────────────────────────────────────
+  # 3. RESONANCE — ERES terminology consistency
+  # ──────────────────────────────────────────────
+  resonance:
+    name: ERES Resonance Check
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check locked acronym consistency
+        run: |
+          echo "=== Locked Acronym Verification (SPT Papers, March 2026) ==="
+          ERRORS=0
+
+          # RHC must be "Resonant Harmony Cycle" not "Cybernetics"
+          if grep -rn "Resonant Harmony Cybernetics" --include="*.md" .; then
+            echo "::error::RHC expansion error — must be 'Resonant Harmony Cycle' not 'Cybernetics'"
+            ERRORS=$((ERRORS+1))
+          fi
+
+          # SOMT must be "Sociocratic Overlay" not "Standard Operating"
+          if grep -rn "Standard Operating Metadata Tapestry" --include="*.md" .; then
+            echo "::error::SOMT expansion error — must be 'Sociocratic Overlay Metadata Tapestry'"
+            ERRORS=$((ERRORS+1))
+          fi
+
+          # REAL formula must not repeat letters (ERS/ST variant is error)
+          if grep -rn "REAL.*ERS.*ST" --include="*.md" .; then
+            echo "::warning::REAL formula may contain repeated-letter variant (S repeats in ERS/ST)"
+          fi
+
+          if [ "$ERRORS" -eq 0 ]; then
+            echo "✓ All locked acronyms consistent"
+          else
+            echo "::error::$ERRORS locked acronym error(s) found — see SPT Papers for canonical expansions"
+            exit 1
+          fi
+
+      - name: ERES framework coverage report
+        run: |
+          echo "=== ERES Framework Coverage ==="
+          echo ""
+
+          declare -A FRAMEWORKS
+          FRAMEWORKS=(
+            ["C=R×P/M"]="Foundational Equation"
+            ["SCALULAR"]="Certification Architecture"
+            ["UBIMIA"]="Economic Framework"
+            ["Meritcoin"]="Proof-of-Resonance Currency"
+            ["GraceChain\|Gracechain"]="Ethical Transaction Ledger"
+            ["FAVORS"]="Six-Factor Biometrics"
+            ["PlayNAC"]="Governance OS"
+            ["GAIA"]="Planetary Coordination"
+            ["SOMT"]="Sociocratic Governance"
+            ["Storm Party"]="Emergency Preparedness"
+            ["BERA"]="Resonance Analysis"
+            ["NBERS"]="Bio-Ecologic Standard"
+            ["EarnedPath"]="Skill Development"
+            ["THOW"]="Test Article Infrastructure"
+            ["FDRV"]="Interstellar Architecture"
+            ["VLSA"]="Scale Validation"
+          )
+
+          FOUND=0
+          TOTAL=${#FRAMEWORKS[@]}
+
+          for KEY in "${!FRAMEWORKS[@]}"; do
+            if grep -rq "$KEY" --include="*.md" .; then
+              echo "  ✓ ${FRAMEWORKS[$KEY]}"
+              FOUND=$((FOUND+1))
+            else
+              echo "  ○ ${FRAMEWORKS[$KEY]} — not referenced"
+            fi
+          done
+
+          echo ""
+          echo "Coverage: $FOUND / $TOTAL frameworks referenced"
+          echo "::notice::ERES framework coverage: $FOUND/$TOTAL"
+
+  # ──────────────────────────────────────────────
+  # 4. REPORT — Summary (NPR: no failure = punishment)
+  # ──────────────────────────────────────────────
+  report:
+    name: NPR Summary Report
+    runs-on: ubuntu-latest
+    needs: [validate, integrity, resonance]
+    if: always()
+    steps:
+      - name: Generate NPR-compliant summary
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║  ERES Institute for New Age Cybernetics — CI Report     ║"
+          echo "║  CARE Commons Attribution License v2.1 (CCAL)          ║"
+          echo "║  Non-Punitive Remediation (NPR v3.0) applies.          ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          echo "║                                                        ║"
+          echo "║  Validate:   ${{ needs.validate.result }}               "
+          echo "║  Integrity:  ${{ needs.integrity.result }}              "
+          echo "║  Resonance:  ${{ needs.resonance.result }}              "
+          echo "║                                                        ║"
+          echo "║  If any check failed:                                  ║"
+          echo "║  → This is a SYSTEM learning opportunity.              ║"
+          echo "║  → No contributor is at fault.                         ║"
+          echo "║  → Fix the system, not the person.                     ║"
+          echo "║  → All fixes are open-source and auditable.            ║"
+          echo "║                                                        ║"
+          echo "║  C = R × P / M                                        ║"
+          echo "║  \"Don't hurt yourself. Don't hurt others.              ║"
+          echo "║   Build for generations to come.\"                      ║"
+          echo "╚══════════════════════════════════════════════════════════╝"
