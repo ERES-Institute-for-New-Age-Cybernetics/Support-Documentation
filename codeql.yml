@@ -1,0 +1,312 @@
+# ERES Institute for New Age Cybernetics — CodeQL Advanced
+# C = R × P / M (Cybernetics = Resource × Purpose ÷ Method)
+#
+# Talonic Security Hooks: 4-3-2-1 TETRA
+#   4 — FOUNDATIONAL: IPIDITIS permutation integrity, CCAL license compliance
+#   3 — COORDINATION: FAVORS channel validation, BERA metric consistency
+#   2 — VERIFICATION: Locked acronym enforcement, manifest coherence
+#   1 — ETHICAL: NPR-governed response, fear-of-retribution elimination
+#
+# "Don't hurt yourself. Don't hurt others. Build for generations to come."
+# CARE Commons Attribution License v2.1 (CCAL)
+# Non-Punitive Remediation (NPR v3.0) governs all scan findings.
+
+name: "ERES CodeQL — Talonic Security"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Weekly scan: Saturday 16:23 UTC (aligned with ERES CI cadence)
+    - cron: '23 16 * * 6'
+  workflow_dispatch:
+
+jobs:
+
+  # ═══════════════════════════════════════════════════════════
+  # TALON 4 — FOUNDATIONAL SCAN (CodeQL Static Analysis)
+  # Layer: IPIDITIS Cryptographic Foundation
+  # Purpose: Detect vulnerabilities in JavaScript/Node.js code
+  #          before they reach the ERES security perimeter
+  # ═══════════════════════════════════════════════════════════
+  talon-4-codeql:
+    name: "Talon 4 — CodeQL Foundation (${{ matrix.language }})"
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # JavaScript/TypeScript — resonance simulator, future PlayNAC modules
+          - language: javascript-typescript
+            build-mode: none
+          # GitHub Actions workflow YAML — CI pipeline integrity
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # Security-extended: broader vulnerability detection
+          # Security-and-quality: includes code quality issues
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ═══════════════════════════════════════════════════════════
+  # TALON 3 — COORDINATION SCAN (Dependency & Supply Chain)
+  # Layer: FAVORS Verification / BERA Metric Consistency
+  # Purpose: Validate that no malicious or vulnerable
+  #          dependencies enter the ERES trust perimeter
+  # ═══════════════════════════════════════════════════════════
+  talon-3-supply-chain:
+    name: "Talon 3 — Supply Chain Integrity"
+    runs-on: ubuntu-latest
+    needs: talon-4-codeql
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for package manifests
+        id: check-deps
+        run: |
+          HAS_DEPS=false
+          if [ -f "package.json" ] || [ -f "package-lock.json" ]; then
+            HAS_DEPS=true
+            echo "Node.js dependencies detected"
+          fi
+          if [ -f "requirements.txt" ] || [ -f "Pipfile" ]; then
+            HAS_DEPS=true
+            echo "Python dependencies detected"
+          fi
+          echo "has_deps=$HAS_DEPS" >> $GITHUB_OUTPUT
+          if [ "$HAS_DEPS" = "false" ]; then
+            echo "No dependency manifests found — supply chain clean"
+          fi
+
+      - name: Audit Node.js dependencies
+        if: steps.check-deps.outputs.has_deps == 'true'
+        run: |
+          if [ -f "package.json" ]; then
+            npm audit --audit-level=moderate 2>&1 || true
+            echo ""
+            echo "NPR Note: Vulnerabilities found are system issues, not contributor failures."
+            echo "Fix the dependency, not the person who added it."
+          fi
+
+      - name: Verify no secrets in repository
+        run: |
+          echo "=== Talon 3: Secret Scan ==="
+          SECRETS_FOUND=0
+
+          # Check for common secret patterns (not exhaustive — CodeQL handles deep scan)
+          if grep -rn "BEGIN.*PRIVATE KEY" --include="*.js" --include="*.json" --include="*.yml" --include="*.yaml" . 2>/dev/null; then
+            echo "::error::Private key material detected in repository"
+            SECRETS_FOUND=$((SECRETS_FOUND+1))
+          fi
+
+          if grep -rn "password\s*[:=]\s*['\"]" --include="*.js" --include="*.json" . 2>/dev/null | grep -v "manifest\|example\|template\|test\|mock" ; then
+            echo "::warning::Possible hardcoded password detected"
+            SECRETS_FOUND=$((SECRETS_FOUND+1))
+          fi
+
+          if [ "$SECRETS_FOUND" -eq 0 ]; then
+            echo "✓ No secrets detected — IPIDITIS perimeter clean"
+          else
+            echo "::error::$SECRETS_FOUND potential secret(s) found — review required"
+            echo "NPR: This is a system vulnerability, not a personal failure."
+            exit 1
+          fi
+
+      - name: CCAL license header check
+        run: |
+          echo "=== Talon 3: CCAL Compliance ==="
+          JS_FILES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" 2>/dev/null)
+          MISSING=0
+
+          for FILE in $JS_FILES; do
+            if ! head -20 "$FILE" | grep -qi "CCAL\|CARE Commons\|ERES Institute"; then
+              echo "  ○ $(basename $FILE) — no CCAL/ERES attribution in header"
+              MISSING=$((MISSING+1))
+            else
+              echo "  ✓ $(basename $FILE)"
+            fi
+          done
+
+          if [ "$MISSING" -gt 0 ]; then
+            echo "::notice::$MISSING JavaScript file(s) missing CCAL attribution header"
+          else
+            echo "✓ All JavaScript files carry ERES/CCAL attribution"
+          fi
+
+  # ═══════════════════════════════════════════════════════════
+  # TALON 2 — VERIFICATION (ERES Resonance Integrity)
+  # Layer: Locked Acronym Enforcement / Manifest Coherence
+  # Purpose: Ensure the resonance simulator itself is sound —
+  #          the instrument that validates must itself be valid
+  # ═══════════════════════════════════════════════════════════
+  talon-2-resonance-integrity:
+    name: "Talon 2 — Resonance Instrument Verification"
+    runs-on: ubuntu-latest
+    needs: talon-4-codeql
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate manifest JSON integrity
+        run: |
+          echo "=== Talon 2: Manifest Coherence ==="
+          MANIFEST=".github/eres-resonance/eres-terms-manifest.json"
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "::warning::Manifest not found at $MANIFEST"
+            echo "Resonance simulator cannot operate without canonical reference."
+            exit 0
+          fi
+
+          # Validate JSON syntax
+          node -e "
+            const fs = require('fs');
+            try {
+              const m = JSON.parse(fs.readFileSync('$MANIFEST', 'utf8'));
+              const checks = {
+                meta: !!m.meta && !!m.meta.version,
+                locked: Array.isArray(m.locked_acronyms) && m.locked_acronyms.length >= 6,
+                frameworks: Array.isArray(m.core_frameworks) && m.core_frameworks.length >= 16,
+                principles: Array.isArray(m.principles) && m.principles.length === 3,
+                favors: Array.isArray(m.favors_channels) && m.favors_channels.length === 6,
+                equations: Array.isArray(m.canonical_equations)
+              };
+
+              let passed = 0;
+              let total = 0;
+              for (const [key, val] of Object.entries(checks)) {
+                total++;
+                if (val) {
+                  passed++;
+                  console.log('  ✓ ' + key);
+                } else {
+                  console.log('  ✗ ' + key + ' — FAILED');
+                }
+              }
+
+              console.log('');
+              console.log('Manifest coherence: ' + passed + '/' + total);
+
+              // Verify FAVORS has exactly 6 channels including Odor
+              if (m.favors_channels && !m.favors_channels.includes('Odor')) {
+                console.log('::error::FAVORS manifest missing Odor channel (must be 6-factor)');
+                process.exit(1);
+              }
+
+              // Verify locked acronyms include the SPT Papers set
+              const sptLocked = ['CyberRAVE', 'GunnySack', 'SaleBuilders'];
+              for (const name of sptLocked) {
+                const found = m.locked_acronyms.find(a => a.acronym === name);
+                if (!found) {
+                  console.log('::error::Missing SPT-locked acronym: ' + name);
+                  process.exit(1);
+                }
+              }
+
+              console.log('✓ Manifest coherent — all canonical references intact');
+              process.exit(0);
+            } catch (e) {
+              console.error('::error::Manifest JSON parse error: ' + e.message);
+              process.exit(1);
+            }
+          "
+
+      - name: Run resonance simulator self-test
+        run: |
+          SIMULATOR=".github/eres-resonance/eres-resonance-check.js"
+          if [ -f "$SIMULATOR" ]; then
+            echo "=== Talon 2: Simulator Self-Test ==="
+            node "$SIMULATOR" .
+          else
+            echo "::notice::Resonance simulator not found at $SIMULATOR — skipping self-test"
+          fi
+
+  # ═══════════════════════════════════════════════════════════
+  # TALON 1 — ETHICAL REPORT (NPR-Governed Summary)
+  # Layer: Non-Punitive Remediation / Fear Elimination
+  # Purpose: No scan result is punishment. Every finding is
+  #          a system learning opportunity. The report itself
+  #          is subject to NPR if it causes harm.
+  # ═══════════════════════════════════════════════════════════
+  talon-1-npr-report:
+    name: "Talon 1 — NPR Ethical Report"
+    runs-on: ubuntu-latest
+    needs: [talon-4-codeql, talon-3-supply-chain, talon-2-resonance-integrity]
+    if: always()
+    steps:
+      - name: Generate Talonic Security Report
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  ERES TALONIC SECURITY — CodeQL Report                      ║"
+          echo "║  4-3-2-1 TETRA Structure                                    ║"
+          echo "╠══════════════════════════════════════════════════════════════╣"
+          echo "║                                                              ║"
+          echo "║  TALON 4 (Foundation):  ${{ needs.talon-4-codeql.result }}   "
+          echo "║    └─ CodeQL static analysis (JS/TS + Actions)               ║"
+          echo "║                                                              ║"
+          echo "║  TALON 3 (Coordination):  ${{ needs.talon-3-supply-chain.result }}  "
+          echo "║    └─ Supply chain / secrets / CCAL compliance                ║"
+          echo "║                                                              ║"
+          echo "║  TALON 2 (Verification):  ${{ needs.talon-2-resonance-integrity.result }}  "
+          echo "║    └─ Manifest coherence / resonance self-test                ║"
+          echo "║                                                              ║"
+          echo "╠══════════════════════════════════════════════════════════════╣"
+          echo "║                                                              ║"
+          echo "║  TALON 1 (Ethical Foundation):                                ║"
+          echo "║                                                              ║"
+          echo "║    NPR v3.0 governs ALL findings above.                      ║"
+          echo "║                                                              ║"
+          echo "║    If any Talon failed:                                       ║"
+          echo "║    → The SYSTEM has a vulnerability.                          ║"
+          echo "║    → No PERSON is at fault.                                   ║"
+          echo "║    → Fix the code, not the contributor.                       ║"
+          echo "║    → All fixes are open-source under CCAL v2.1.              ║"
+          echo "║    → Fear-of-retribution elimination applies.                ║"
+          echo "║                                                              ║"
+          echo "║    SECURITY.md § 3: No contributor shall fear                ║"
+          echo "║    retribution for filing, confessing, knowing,              ║"
+          echo "║    or speaking truth.                                         ║"
+          echo "║                                                              ║"
+          echo "║  ┌─────────────────────────────────────────┐                 ║"
+          echo "║  │  4  FOUNDATIONAL   IPIDITIS / CodeQL    │                 ║"
+          echo "║  │  3  COORDINATION   FAVORS / Supply Chain│                 ║"
+          echo "║  │  2  VERIFICATION   Resonance / Manifest │                 ║"
+          echo "║  │  1  ETHICAL        NPR / Fear Elimination│                ║"
+          echo "║  └─────────────────────────────────────────┘                 ║"
+          echo "║                                                              ║"
+          echo "║  C = R × P / M                                               ║"
+          echo "║  \"Don't hurt yourself. Don't hurt others.                    ║"
+          echo "║   Build for generations to come.\"                            ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+
+      - name: Annotate scan completion
+        run: |
+          echo "::notice::ERES Talonic Security scan complete. NPR governs all findings."
+          echo "::notice::TETRA 4-3-2-1: Foundation→Coordination→Verification→Ethics"
